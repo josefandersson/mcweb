@@ -1,0 +1,17 @@
+{
+  "name": "3d2mc",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "minecraft-schematic": "0.0.1",
+    "nbt": "^0.8.1",
+    "stl-reader": "^3.0.1"
+  }
+}

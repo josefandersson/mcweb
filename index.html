@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <title>3d2mc</title>
+        <script src="node_modules/stl-reader/DataStream.js/encoding-indexes.js"></script>
+        <script src="node_modules/stl-reader/DataStream.js/encoding.js"></script>
+        <script src="node_modules/stl-reader/DataStream.js/DataStream.js"></script>
+        <script src="node_modules/stl-reader/stl-ascii-reader.js"></script>
+        <script src="node_modules/stl-reader/stl-binary-reader.js"></script>
+        <script src="node_modules/stl-reader/stl-reader.js"></script>
+        <script src="gl-matrix.js"></script>
+        <script src="pako.js"></script>
+        <script src="pre.js"></script>
+        <script src="node_modules/nbt/nbt.js"></script>
+        <script src="FileSaver.min.js"></script>
+        <script src="MinecraftIDs.js"></script>
+        <script src="MinecraftAssets.js"></script>
+        <script src="Block.js"></script>
+        <script src="Structure.js"></script>
+        <script src="Vertex.js"></script>
+        <script src="Triangle.js"></script>
+        <script src="Mesh.js"></script>
+        <script defer src="Preview.js"></script>
+        <script defer src="script.js"></script>
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body>
+        <div class="background">
+            <div class="container">
+                <div class="left">
+                    <label id="drop_file" for="file_input">
+                        <p></p>
+                    </label>
+                    <input type="file" id="file_input" accept=".stl,.nbt,.schematic,.litematic">
+                    <p>or</p>
+                    <button>Generate</button>
+                </div>
+                <div class="middle">
+                    <p>Structure</p>
+                    <input type="number" id="size_x">
+                    x
+                    <input type="number" id="size_y">
+                    x
+                    <input type="number" id="size_z">
+                </div>
+                <div class="right">
+                    <canvas id="preview" height="500px" width="500px"></canvas>
+                    <br>
+                    <button id="download" disabled>Download</button>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

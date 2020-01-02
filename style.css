@@ -1,0 +1,92 @@
+body { background-color: #191e21; color: #eee; font-family: Roboto, sans-serif; }
+
+.background {
+    position: absolute;
+    top: 0%; bottom: 0%; left: 0%; right: 0%;
+}
+
+.container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: fit-content;
+}
+
+.container > div {
+    display: inline-block;
+}
+
+.left label {
+    width: 150px;
+    height: 150px;
+    display: flex;
+    /* background-color: #47668c; */
+    cursor: pointer;
+    text-align: center;
+    padding: 10px;
+    box-sizing: border-box;
+    border: 1px solid #678dbb;
+    border-radius: 5px;
+    color: #678dbb;
+    font-size: 14px;
+}
+
+.left label.dragover {
+    background-color: #628abb;
+    border-color: #8cb4e4;
+    color: #cee4ff;
+}
+
+.left label.dragover p::after {
+    content: 'Drop file now';
+}
+
+.left label p::after {
+    content: 'Drop file here or click to select';
+}
+
+.left label p {
+    margin: auto;
+    word-break: break-word;
+    /* z-index: -100; */
+}
+
+.left label.fileselected {
+    background-color: #3b6d49;
+    border: 1px solid #62b779;
+    color: #84da9b;
+}
+
+.left label.fileselected p::after {
+    content: '';
+}
+
+.left input { display: none; }
+
+.left > p { text-align: center; font-size: 14px; font-style: italic; }
+
+.left button, .right button {
+    width: 150px;
+    cursor: pointer;
+}
+
+
+
+
+.middle {
+    width: 300px;
+    text-align: center;
+}
+
+.middle input[type='number'] {
+    width: 45px;
+}
+
+
+
+
+
+.right canvas {
+    border: 1px solid #678dbb;
+}

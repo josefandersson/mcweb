@@ -1,0 +1,8 @@
+node_modules
+assets
+*.schematic
+*.nbt
+
+# 3rd party libraries
+gl-matrix.js
+pako.js

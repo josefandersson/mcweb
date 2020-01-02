@@ -1,0 +1,1 @@
+A project to load different kinds of Minecraft 'structures' (.litematic, .nbt, .schematic) and export in a different format. It has also turned into a rendering tool for rendering those 'structures' and editing them in the browser.

@@ -315,60 +315,7 @@ class Structure {
             texCoords.push(...entry[1].texCoords)
             textureIndices.push({ textureName:entry[0], start:startOffset * Uint16Array.BYTES_PER_ELEMENT, length:entry[1].indices.length })
         })
-
-        // vertices = textures[Object.keys(textures)[0]].vertices
-        // indices = textures[Object.keys(textures)[0]].indices
-        // normals = textures[Object.keys(textures)[0]].normals
-        // texCoords = textures[Object.keys(textures)[0]].texCoords
-        // textureIndices = [{ textureName:Object.keys(textures)[0], start:0, length:indices.length }]
-
-        // let vertices = []
-        // let indices = []
-        // let normals = []
-        // let texCoords = []
-        // let textures = {}
-        // let numVertices = 0
-        // let push = (block, x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3, n, m, o) => {
-        //     vertices.push(
-        //         block.x + x0, block.y + y0, block.z + z0,
-        //         block.x + x1, block.y + y1, block.z + z1,
-        //         block.x + x2, block.y + y2, block.z + z2,
-        //         block.x + x3, block.y + y3, block.z + z3)
-        //     indices.push(
-        //         numVertices, numVertices + 1, numVertices + 2,
-        //         numVertices, numVertices + 2, numVertices + 3)
-        //     normals.push(
-        //         n, m, o,
-        //         n, m, o,
-        //         n, m, o,
-        //         n, m, o)
-        //     texCoords.push(
-        //         0, 0,
-        //         0, 1,
-        //         1, 1,
-        //         1, 0)
-        //     numVertices += 4
-        // }
-        // this.forEachBlock(block => {
-        //     if (block.north(true) == null) {
-        //         push(block, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 1)
-        //     }
-        //     if (block.south(true) == null) {
-        //         push(block, 1, 0, 1, 1, 1, 1, 0, 1, 1, 0, 0, 1, 0, 0, -1)
-        //     }
-        //     if (block.west(true) == null) {
-        //         push(block, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0)
-        //     }
-        //     if (block.east(true) == null) {
-        //         push(block, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 0, 1, -1, 0, 0)
-        //     }
-        //     if (block.above(true) == null) {
-        //         push(block, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0)
-        //     }
-        //     if (block.below(true) == null) {
-        //         push(block, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, -1, 0)
-        //     }
-        // }, true)
+        
         return { vertices, indices, normals, texCoords, textureIndices, centerOffset:[ this.width/2, this.height/2, this.depth/2 ], radius:Math.max(this.width, this.height, this.depth) + 5 }
     }
 

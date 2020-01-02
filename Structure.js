@@ -80,6 +80,21 @@ class Structure {
         return null
     }
 
+    replaceBlockType(oldBlockType, newBlockType, removeProperties=true, removeData=true) {
+        this.forEachBlock(block => {
+            if (block.type === oldBlockType) {
+                block.type = newBlockType
+                if (removeProperties === true) {
+                    block.properties = null
+                }
+                if (removeData === true) {
+                    block.data = null
+                }
+            }
+        }, oldBlockType !== 'minecraft:air')
+        return this
+    }
+
     fill(x0, y0, z0, x1, y1, z1, type='minecraft:air') { // TODO: change type to block?
         if (this.positionInBounds(x0, y0, z0) && this.positionInBounds(x1, y1, z1)) {
             let xo = Math.min(x0, x1)
@@ -177,7 +192,7 @@ class Structure {
     toWebGL() {
         let textures = {}
 
-        let push = (textureName, block, x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3, n, m, o) => {
+        let push = (textureName, block, asset, x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3, n, m, o, uv=null) => {
             if (textures[textureName] == null) {
                 textures[textureName] = { vertices:[], indices:[], normals:[], texCoords:[] }
             }
@@ -187,19 +202,25 @@ class Structure {
             let p2 = [x2, y2, z2]
             let p3 = [x3, y3, z3]
 
-            if (block.assets.x != null) {
-                let angle = Math.PI / 180 * (-block.assets.x)
+            if (asset.x != null) {
+                let angle = Math.PI / 180 * (-asset.x)
                 glMatrix.vec3.rotateX(p0, p0, [8, 8, 8], angle)
                 glMatrix.vec3.rotateX(p1, p1, [8, 8, 8], angle)
                 glMatrix.vec3.rotateX(p2, p2, [8, 8, 8], angle)
                 glMatrix.vec3.rotateX(p3, p3, [8, 8, 8], angle)
             }
-            if (block.assets.y != null) {
-                let angle = Math.PI / 180 * (-block.assets.y)
+            if (asset.y != null) {
+                let angle = Math.PI / 180 * (-asset.y)
                 glMatrix.vec3.rotateY(p0, p0, [8, 8, 8], angle)
                 glMatrix.vec3.rotateY(p1, p1, [8, 8, 8], angle)
                 glMatrix.vec3.rotateY(p2, p2, [8, 8, 8], angle)
                 glMatrix.vec3.rotateY(p3, p3, [8, 8, 8], angle)
+            }
+
+            if (uv == null) {
+                uv = [0,0,1,1]
+            } else {
+                uv = uv.map(v => v/16)
             }
 
             let i = textures[textureName].vertices.length / 3
@@ -217,88 +238,85 @@ class Structure {
                 n, m, o,
                 n, m, o)
             textures[textureName].texCoords.push(
-                0, 0,
-                0, 1,
-                1, 1,
-                1, 0)
+                uv[2], uv[1],
+                uv[2], uv[3],
+                uv[0], uv[3],
+                uv[0], uv[1])
         }
 
-        ;(() => {
-            let s = new Structure(1, 2, 1)
-            s.setBlock(new Block(0, 0, 0, 'minecraft:observer'))
-            s.setBlock(new Block(0, 1, 0, 'minecraft:observer'))
-            init(s.toWebGL())
-            loop()
-        })
-
-        this.forEachBlock(block => {
-            let assets = block.getAssets()
-
-            // let names = MinecraftAssets.getTexture(block.type)
-            if (assets == null) {
-                console.warn('Block', block, 'does not have any assets. Is no resource pack loaded?')
-                return
-            }
-
-            if (assets.model == null) {
-                console.warn('Block', block, 'does not have any model in assets', assets)
-                return
-            }
-
-            let neighbors = block.neighbors(true)
-
-            if (block.hasObscureModel()) {
-                // render all as the model says (model.elements[i].faces)
-                assets.model.elements.forEach(element => {
-                    let f = element.from
-                    let t = element.to
-                    if (element.faces.north != null) {
-                        push(element.faces.north.texture, block,
-                            f[0], f[1], f[2], f[0], t[1], f[2], t[0], t[1], f[2], t[0], f[1], f[2], 0, 0, 1)
-                    }if (element.faces.south != null) {
-                        push(element.faces.south.texture, block,
-                            t[0], f[1], t[2], t[0], t[1], t[2], f[0], t[1], t[2], f[0], f[1], t[2], 0, 0, -1)
+        for (let x = 0; x < this.width; x++) {
+            for (let y = 0; y < this.height; y++) {
+                for (let z = 0; z < this.depth; z++) {
+                    let block = this.getBlock(x, y, z, true)
+                    if (block == null) {
+                        continue
                     }
-                    if (element.faces.west != null) {
-                        push(element.faces.west.texture, block,
-                            f[0], f[1], t[2], f[0], t[1], t[2], f[0], t[1], f[2], f[0], f[1], f[2], 1, 0, 0)
+
+                    let assets = block.getAssets()
+            
+                    if (assets == null) {
+                        console.warn('Block', block, 'does not have any assets. Is no resource pack loaded?')
+                        continue
                     }
-                    if (element.faces.east != null) {
-                        push(element.faces.east.texture, block,
-                            t[0], f[1], f[2], t[0], t[1], f[2], t[0], t[1], t[2], t[0], f[1], t[2], -1, 0, 0)
+            
+                    if (block.hasObscureModel()) {
+                        // render all as the model says (model.elements[i].faces)
+                        assets.forEach(asset => {
+                            asset.model.elements.forEach(element => {
+                                let f = element.from
+                                let t = element.to
+                                if (element.faces.north != null) {
+                                    push(element.faces.north.texture, block, asset,
+                                        f[0], f[1], f[2], f[0], t[1], f[2], t[0], t[1], f[2], t[0], f[1], f[2], 0, 0, 1, element.faces.north.uv)
+                                }if (element.faces.south != null) {
+                                    push(element.faces.south.texture, block, asset,
+                                        t[0], f[1], t[2], t[0], t[1], t[2], f[0], t[1], t[2], f[0], f[1], t[2], 0, 0, -1, element.faces.south.uv)
+                                }
+                                if (element.faces.west != null) {
+                                    push(element.faces.west.texture, block, asset,
+                                        f[0], f[1], t[2], f[0], t[1], t[2], f[0], t[1], f[2], f[0], f[1], f[2], 1, 0, 0, element.faces.west.uv)
+                                }
+                                if (element.faces.east != null) {
+                                    push(element.faces.east.texture, block, asset,
+                                        t[0], f[1], f[2], t[0], t[1], f[2], t[0], t[1], t[2], t[0], f[1], t[2], -1, 0, 0, element.faces.east.uv)
+                                }
+                                if (element.faces.up != null) {
+                                    push(element.faces.up.texture, block, asset,
+                                        f[0], t[1], f[2], f[0], t[1], t[2], t[0], t[1], t[2], t[0], t[1], f[2], 0, 1, 0, element.faces.up.uv)
+                                }
+                                if (element.faces.down != null) {
+                                    push(element.faces.down.texture, block, asset,
+                                        f[0], f[1], f[2], t[0], f[1], f[2], t[0], f[1], t[2], f[0], f[1], t[2], 0, -1, 0, element.faces.down.uv)
+                                }
+                            })
+                        })
+                    } else {
+                        let neighbors = block.neighbors(true)
+                        let faces = assets[0].model.elements[0].faces
+                        if (neighbors.north == null || neighbors.north.hasObscureModel()) {
+                            push(faces.north.texture, block, assets[0], 0, 0, 0, 0, 16, 0, 16, 16, 0, 16, 0, 0, 0, 0, 1, faces.north.uv)
+                        }
+                        if (neighbors.south == null || neighbors.south.hasObscureModel()) {
+                            push(faces.south.texture, block, assets[0], 16, 0, 16, 16, 16, 16, 0, 16, 16, 0, 0, 16, 0, 0, -1, faces.south.uv)
+                        }
+                        if (neighbors.west == null || neighbors.west.hasObscureModel()) {
+                            push(faces.west.texture, block, assets[0], 0, 0, 16, 0, 16, 16, 0, 16, 0, 0, 0, 0, 1, 0, 0, faces.west.uv)
+                        }
+                        if (neighbors.east == null || neighbors.east.hasObscureModel()) {
+                            push(faces.east.texture, block, assets[0], 16, 0, 0, 16, 16, 0, 16, 16, 16, 16, 0, 16, -1, 0, 0, faces.east.uv)
+                        }
+                        if (neighbors.above == null || neighbors.above.hasObscureModel()) {
+                            push(faces.up.texture, block, assets[0], 16, 16, 16, 16, 16, 0, 0, 16, 0, 0, 16, 16, 0, 1, 0, faces.up.uv)
+                        }
+                        if (neighbors.below == null || neighbors.below.hasObscureModel()) {
+                            push(faces.down.texture, block, assets[0], 16, 0, 0, 16, 0, 16, 0, 0, 16, 0, 0, 0, 0, -1, 0, faces.down.uv)
+                        }
                     }
-                    if (element.faces.up != null) {
-                        push(element.faces.up.texture, block,
-                            f[0], t[1], f[2], f[0], t[1], t[2], t[0], t[1], t[2], t[0], t[1], f[2], 0, 1, 0)
-                    }
-                    if (element.faces.down != null) {
-                        push(element.faces.down.texture, block,
-                            f[0], f[1], f[2], t[0], f[1], f[2], t[0], f[1], t[2], f[0], f[1], t[2], 0, -1, 0)
-                    }
-                })
-            } else {
-                let faces = assets.model.elements[0].faces
-                // render only if no block adjacent
-                if (neighbors.north == null || neighbors.north.hasObscureModel()) {
-                    push(faces.north.texture, block, 0, 0, 0, 0, 16, 0, 16, 16, 0, 16, 0, 0, 0, 0, 1)
-                }
-                if (neighbors.south == null || neighbors.south.hasObscureModel()) {
-                    push(faces.south.texture, block, 16, 0, 16, 16, 16, 16, 0, 16, 16, 0, 0, 16, 0, 0, -1)
-                }
-                if (neighbors.west == null || neighbors.west.hasObscureModel()) {
-                    push(faces.west.texture, block, 0, 0, 16, 0, 16, 16, 0, 16, 0, 0, 0, 0, 1, 0, 0)
-                }
-                if (neighbors.east == null || neighbors.east.hasObscureModel()) {
-                    push(faces.east.texture, block, 16, 0, 0, 16, 16, 0, 16, 16, 16, 16, 0, 16, -1, 0, 0)
-                }
-                if (neighbors.above == null || neighbors.above.hasObscureModel()) {
-                    push(faces.up.texture, block, 0, 16, 0, 0, 16, 16, 16, 16, 16, 16, 16, 0, 0, 1, 0)
-                }
-                if (neighbors.below == null || neighbors.below.hasObscureModel()) {
-                    push(faces.down.texture, block, 0, 0, 0, 16, 0, 0, 16, 0, 16, 0, 0, 16, 0, -1, 0)
                 }
             }
-        }, true)
+        }
+        // this.forEachBlock(block => {
+        // }, true)
 
         let vertices = []
         let indices = []
@@ -306,15 +324,29 @@ class Structure {
         let texCoords = []
         let textureIndices = []
 
-        Object.entries(textures).forEach(entry => {
+        for (const key in textures) {
+            let texture = textures[key]
             let iOffset = vertices.length / 3
             let startOffset = indices.length
-            vertices.push(...entry[1].vertices)
-            indices.push(...entry[1].indices.map(i => i + iOffset))
-            normals.push(...entry[1].normals)
-            texCoords.push(...entry[1].texCoords)
-            textureIndices.push({ textureName:entry[0], start:startOffset * Uint16Array.BYTES_PER_ELEMENT, length:entry[1].indices.length })
-        })
+            vertices = vertices.concat(texture.vertices)
+            indices = indices.concat(texture.indices.map(i => i + iOffset))
+            normals = normals.concat(texture.normals)
+            texCoords = texCoords.concat(texture.texCoords)
+            // vertices.push(...texture.vertices)
+            // indices.push(...texture.indices.map(i => i + iOffset))
+            // normals.push(...texture.normals)
+            // texCoords.push(...texture.texCoords)
+            textureIndices.push({ textureName:key, start:startOffset * Uint16Array.BYTES_PER_ELEMENT, length:texture.indices.length })
+        }
+        // Object.entries(textures).forEach(entry => {
+        //     let iOffset = vertices.length / 3
+        //     let startOffset = indices.length
+        //     vertices.push(...entry[1].vertices)
+        //     indices.push(...entry[1].indices.map(i => i + iOffset))
+        //     normals.push(...entry[1].normals)
+        //     texCoords.push(...entry[1].texCoords)
+        //     textureIndices.push({ textureName:entry[0], start:startOffset * Uint16Array.BYTES_PER_ELEMENT, length:entry[1].indices.length })
+        // })
         
         return { vertices, indices, normals, texCoords, textureIndices, centerOffset:[ this.width/2, this.height/2, this.depth/2 ], radius:Math.max(this.width, this.height, this.depth) + 5 }
     }
@@ -470,7 +502,7 @@ class Structure {
             }
         })
 
-        return struct
+        return struct.replaceBlockType('minecraft:cave_air', 'minecraft:air')
     }
 
     // nbt: object returned from 'nbt' module parse function
@@ -502,7 +534,7 @@ class Structure {
             }    
         }
 
-        return struct
+        return struct.replaceBlockType('minecraft:cave_air', 'minecraft:air')
     }
 }
 

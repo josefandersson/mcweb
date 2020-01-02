@@ -1,6 +1,9 @@
 const elPreview = document.getElementById('preview')
 const gl = elPreview.getContext('webgl2')
 
+const elPreviewHud = document.getElementById('preview_hud')
+const ctx = elPreviewHud.getContext('2d')
+
 const vertexShaderText =
 `precision mediump float;
 
@@ -120,7 +123,7 @@ function createTexture(textureName, callback) {
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image)
         callback(null, texture)
     })
-    image.src = `assets/minecraft/textures/${textureName}.png`
+    image.src = `assets_default/minecraft/textures/${textureName}.png`
 }
 
 function getTexture(textureName, callback) {
@@ -172,18 +175,35 @@ function init(model) {
     gl.activeTexture(gl.TEXTURE0)
 }
 
+ctx.font = '20px Roboto'
+ctx.fillStyle = 'red'
+
 let identityMatrix = new Float32Array(16)
 glMatrix.mat4.identity(identityMatrix)
-let angle = 0
+let spinning = false
 let radius = 15
-let eyesY = 1
+let angleOffsetX = 0
+let angleOffsetY = 0
+let lastFrame = 0
 function draw() {
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height)
+    ctx.fillText(`${Math.round(1000 / (performance.now() - lastFrame))} FPS`, 20, 30)
+    lastFrame = performance.now()
+
     gl.clearColor(0, 0, 0, 0)
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+    
+    let angleX = angleOffsetX
+    let angleY = angleOffsetY
+    if (spinning === true) {
+        angleX += performance.now() / 1000 / 6 * Math.PI
+    }
 
-    if (angle >= 0)
-        angle = performance.now() / 1000 / 6 * Math.PI
-    let eyes = [Math.cos(angle) * radius, eyesY, Math.sin(angle) * radius]
+    let eyes = [Math.cos(angleX) * Math.cos(angleY) * radius, Math.sin(angleY) * radius, Math.sin(angleX) * Math.cos(angleY) * radius]
+
+    // let angle = angleOffset
+    // if (spinning === true) angle += performance.now() / 1000 / 6 * Math.PI
+    // let eyes = [Math.cos(angle) * radius, eyesY, Math.sin(angle) * radius]
     glMatrix.mat4.lookAt(viewMatrix, eyes, [0, 0, 0], [0, 1, 0])
     gl.uniformMatrix4fv(matViewUniformLocation, gl.FALSE, viewMatrix)
 
@@ -195,11 +215,25 @@ function draw() {
     })
 }
 
+function update() {
+    let fraction = performance.now() / 40000
+    if (keys.q.down) radius -= fraction
+    if (keys.e.down) radius += fraction
+    if (keys.a.down) angleOffsetX += fraction / 6
+    if (keys.d.down) angleOffsetX -= fraction / 6
+    if (keys.w.down) angleOffsetY += fraction / 6
+    if (keys.s.down) angleOffsetY -= fraction / 6
+    angleOffsetY = Math.max(Math.min(Math.PI / 2, angleOffsetY), -Math.PI / 2)
+    radius = Math.max(1.8, radius)
+}
+
 let running = true
 function loop() {
     if (!running) return
 
+    update()
     draw()
 
     requestAnimationFrame(loop)
+
 }

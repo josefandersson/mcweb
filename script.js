@@ -89,8 +89,8 @@ function processFile(file) {
         if (/\.nbt$/.test(file.name)) {
             nbt.parse(reader.result, (err, nbtData) => {
                 if (err) throw err // TODO: handle
-                console.log(nbtData)
                 structure = Structure.fromNBT(nbtData)
+                init(structure.toWebGL())
             })
         } else if (/\.stl$/.test(file.name)) {
             let stlReader = new StlReader()
@@ -103,6 +103,7 @@ function processFile(file) {
             nbt.parse(reader.result, (err, nbtData) => {
                 if (err) throw err // TODO: handle
                 structure = Structure.fromLitematic(nbtData)
+                init(structure.toWebGL())
             })
         } else if (/\.schematic$/.test(file.name)) {
             nbt.parse(reader.result, (err, nbtData) => {
@@ -129,6 +130,24 @@ function download() {
     let blob = new Blob([new Uint8Array(pako.gzip(nbt.writeUncompressed(newNbtData)))])
     saveAs(blob, 'download.nbt')
 }
+
+let keys = { w:{}, a:{}, s:{}, d:{}, q:{}, e:{} }
+document.addEventListener('keydown', ev => {
+    if (keys[ev.key] == null) {
+        keys[ev.key] = {}
+    }
+
+    keys[ev.key].time = performance.now()
+    keys[ev.key].down = true
+})
+document.addEventListener('keyup', ev => {
+    if (keys[ev.key] == null) {
+        keys[ev.key] = {}
+        keys[ev.key].time = 0
+    }
+
+    keys[ev.key].down = false
+})
 
 // let image = new Image()
 // image.src = 'stone_bricks.png'

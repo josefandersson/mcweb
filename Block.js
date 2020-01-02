@@ -7,6 +7,7 @@ class Block {
         this.properties = properties
         this.data = data // for blocks with inventory, etc.
 
+        this.hasAssets = null
         this.assets = null
         this.assetsType = null
         this.assetsProperties = null
@@ -79,31 +80,27 @@ class Block {
     }
 
     getAssets() {
-        if (this.assets == null || this.assetsType != this.type || this.assetsProperties != this.assetsProperties) {
-            this.assets = Object.assign({}, MinecraftAssets.getBlockAssets(this))
+        if (this.assets == null || this.assetsType != this.type || this.assetsProperties != this.properties) {
+            this.assets = MinecraftAssets.getBlockAssets(this)
             this.assetsType = this.type
-            this.assetsProperties = Object.assign({}, this.properties)
+            this.assetsProperties = cloneObject(this.properties)
+            this.hasAssets = this.assets != null
         }
         return this.assets
     }
 
     hasObscureModel() {
         if (this.getAssets() != null) {
-            if (this.assets.model == null) {
+            if (this.assets == null || this.assets.length > 1 || this.assets[0].model.elements.length > 1) {
                 return true
             }
-            if (this.assets.model.elements.length > 1) {
-                return true
-            }
-            let from = this.assets.model.elements[0].from
-            let to = this.assets.model.elements[0].to
+            let from = this.assets[0].model.elements[0].from
+            let to = this.assets[0].model.elements[0].to
             if (from[0] !== 0 || from[1] !== 0 || from[2] !== 0 || to[0] !== 16 || to[1] !== 16 || to[2] !== 16) {
                 return true
             }
         }
-        return false
+        return !this.hasAssets
     }
-
-    shouldRenderFacesNorth() {}
 
 }

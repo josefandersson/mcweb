@@ -185,10 +185,12 @@ let radius = 15
 let angleOffsetX = 0
 let angleOffsetY = 0
 let lastFrame = 0
+let frameLength = 0
 function draw() {
-    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height)
-    ctx.fillText(`${Math.round(1000 / (performance.now() - lastFrame))} FPS`, 20, 30)
+    frameLength = performance.now() - lastFrame
     lastFrame = performance.now()
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height)
+    ctx.fillText(`${Math.round(1000 / frameLength)} FPS`, 20, 30)
 
     gl.clearColor(0, 0, 0, 0)
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
@@ -216,9 +218,9 @@ function draw() {
 }
 
 function update() {
-    let fraction = performance.now() / 40000
-    if (keys.q.down) radius -= fraction
-    if (keys.e.down) radius += fraction
+    let fraction = frameLength / 50
+    if (keys.q.down) radius += fraction
+    if (keys.e.down) radius -= fraction
     if (keys.a.down) angleOffsetX += fraction / 6
     if (keys.d.down) angleOffsetX -= fraction / 6
     if (keys.w.down) angleOffsetY += fraction / 6

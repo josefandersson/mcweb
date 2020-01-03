@@ -85,6 +85,9 @@ body { background-color: #191e21; color: #eee; font-family: Roboto, sans-serif; 
 
 
 
+.right button {
+    width: 502px;
+}
 
 .right .canvas_container {
     position: relative;

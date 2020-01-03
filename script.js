@@ -6,7 +6,6 @@ const elSizeX = document.getElementById('size_x')
 const elSizeY = document.getElementById('size_y')
 const elSizeZ = document.getElementById('size_z')
 const elDownload = document.getElementById('download')
-// const elPreview = document.getElementById('preview')
 
 elFileInput.addEventListener('change', ev => {
     if (elFileInput.files && elFileInput.files.length > 0) {
@@ -90,7 +89,7 @@ function processFile(file) {
             nbt.parse(reader.result, (err, nbtData) => {
                 if (err) throw err // TODO: handle
                 structure = Structure.fromNBT(nbtData)
-                init(structure.toWebGL())
+                display.loadModel(structure.toWebGL())
             })
         } else if (/\.stl$/.test(file.name)) {
             let stlReader = new StlReader()
@@ -103,7 +102,7 @@ function processFile(file) {
             nbt.parse(reader.result, (err, nbtData) => {
                 if (err) throw err // TODO: handle
                 structure = Structure.fromLitematic(nbtData)
-                init(structure.toWebGL())
+                display.loadModel(structure.toWebGL())
             })
         } else if (/\.schematic$/.test(file.name)) {
             nbt.parse(reader.result, (err, nbtData) => {

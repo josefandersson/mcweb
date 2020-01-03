@@ -91,7 +91,7 @@ class Block {
 
     hasObscureModel() {
         if (this.getAssets() != null) {
-            if (this.assets == null || this.assets.length != 1 || this.assets[0].model.elements.length > 1) {
+            if (this.assets == null || this.assets.length != 1 || this.assets[0].model.elements.length > 1 || this.type.indexOf('glass') != -1) {
                 return true
             }
             let from = this.assets[0].model.elements[0].from

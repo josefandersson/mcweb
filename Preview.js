@@ -1,8 +1,7 @@
 const elPreview = document.getElementById('preview')
-const gl = elPreview.getContext('webgl2')
-
 const elPreviewHud = document.getElementById('preview_hud')
-const ctx = elPreviewHud.getContext('2d')
+
+const TEXTURES_PATH = 'assets_default/minecraft/textures'
 
 const vertexShaderText =
 `precision mediump float;
@@ -40,202 +39,271 @@ void main()
     gl_FragColor = texture2D(sampler, fragTexCoord);
 }`
 
-gl.clearColor(0, 0, 0, 0)
-gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
-gl.enable(gl.DEPTH_TEST)
-gl.enable(gl.CULL_FACE)
-gl.enable(gl.BLEND)
-gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
-gl.frontFace(gl.CCW)
-gl.cullFace(gl.BACK)
-gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true)
-gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true)
+const coloredVertexShaderText =
+`precision mediump float;
 
-const vertexShader = gl.createShader(gl.VERTEX_SHADER)
-const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER)
+attribute vec3 vertPosition2;
+attribute vec4 vertColor2;
 
-gl.shaderSource(vertexShader, vertexShaderText)
-gl.shaderSource(fragmentShader, fragmentShaderText)
+varying vec4 fragColor2;
 
-gl.compileShader(vertexShader)
-if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
-    console.error('ERROR compiling vertex shader!', gl.getShaderInfoLog(vertexShader))
+uniform mat4 mWorld;
+uniform mat4 mView;
+uniform mat4 mProj;
+
+void main()
+{
+    fragColor2 = vertColor2;
+    gl_Position = mProj * mView * mWorld * vec4(vertPosition2, 1.0);
 }
+`
 
-gl.compileShader(fragmentShader)
-if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
-    console.error('ERROR compiling fragment shader!', gl.getShaderInfoLog(fragmentShader))
-}
+const coloredFragmentShaderText =
+`precision mediump float;
 
-const program = gl.createProgram()
-gl.attachShader(program, vertexShader)
-gl.attachShader(program, fragmentShader)
-gl.linkProgram(program)
-if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-    console.error('ERROR linking program!', gl.getProgramInfoLog(program))
-}
-gl.validateProgram(program)
-if (!gl.getProgramParameter(program, gl.VALIDATE_STATUS)) {
-    console.error('ERROR validating program!', gl.getProgramInfoLog(program))
-}
+varying vec4 fragColor2;
 
-function createBufferObject(target, srcData, usage) {
-    let bufferObject = gl.createBuffer()
-    return bindBufferData(bufferObject, target, srcData, usage)
-}
+void main()
+{
+    gl_FragColor = fragColor2;
+}`
 
-function bindBufferData(bufferObject, target, srcData, usage) {
-    gl.bindBuffer(target, bufferObject)
-    gl.bufferData(target, srcData, usage)
-    return bufferObject
-}
+class Display {
+    constructor(webgl, context2d) {
+        this.gl = webgl
+        this.ctx = context2d // for hud
 
-function bindVertexAttrib(bufferObject, attribName, size, type, normalized, stride, offset) {
-    gl.bindBuffer(gl.ARRAY_BUFFER, bufferObject)
+        this.shaderPrograms = {} // name:{ program:gl.Program, vertexShader:gl.Shader, fragmentShader:gl.Shader, buffers:{ name:gl.Buffer } }
+        this.textures = {} // src:gl.Texture
 
-    let loc = gl.getAttribLocation(program, attribName)
-    gl.vertexAttribPointer(loc, size, type, normalized, stride, offset)
-    gl.enableVertexAttribArray(loc)
-}
+        this.worldMatrix = new Float32Array(16)
+        this.viewMatrix = new Float32Array(16)
+        this.projMatrix = new Float32Array(16)
 
-let modelVertexBufferObject = gl.createBuffer() // createBufferObject(gl.ARRAY_BUFFER, new Float32Array(model.vertices), gl.STATIC_DRAW)
-let modelIndexBufferObject = gl.createBuffer() // createBufferObject(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(model.indices), gl.STATIC_DRAW)
-let modelNormalBufferObject = gl.createBuffer() // createBufferObject(gl.ARRAY_BUFFER, new Float32Array(model.normals), gl.STATIC_DRAW)
-let modelTexCoordBufferObject = gl.createBuffer() // createBufferObject(gl.ARRAY_BUFFER, new Float32Array(model.texCoords), gl.STATIC_DRAW)
+        glMatrix.mat4.identity(this.worldMatrix)
+        glMatrix.mat4.lookAt(this.viewMatrix, [0, 1, 10], [0, 0, 0], [0, 1, 0])
+        glMatrix.mat4.perspective(this.projMatrix, Math.PI/4, this.gl.canvas.width / this.gl.canvas.height, 0.1, 1e3)
+        
+        this.running = true
+        this.spinning = false
+        this.radius = 15
+        this.angleOffsetX = Math.PI/2
+        this.angleOffsetY = Math.PI/4
+        this.lastFrameTime = 0
+        this.currentFrameTime = 0
+        this.frameLength = 0
 
-bindVertexAttrib(modelVertexBufferObject, 'vertPosition', 3, gl.FLOAT, gl.FALSE, 3 * Float32Array.BYTES_PER_ELEMENT, 0)
-bindVertexAttrib(modelNormalBufferObject, 'vertNormal', 3, gl.FLOAT, gl.TRUE, 3 * Float32Array.BYTES_PER_ELEMENT, 0)
-bindVertexAttrib(modelTexCoordBufferObject, 'vertTexCoord', 2, gl.FLOAT, gl.FALSE, 2 * Float32Array.BYTES_PER_ELEMENT, 0)
+        this.resetWebGLSettings()
+    }
 
-gl.useProgram(program)
+    resetWebGLSettings() {
+        this.ctx.font = '10px Roboto'
+        this.ctx.fillStyle = 'red'
+        this.gl.clearColor(0, 0, 0, 0)
+        this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT)
+        this.gl.enable(this.gl.DEPTH_TEST)
+        this.gl.enable(this.gl.CULL_FACE)
+        this.gl.enable(this.gl.BLEND)
+        this.gl.blendFunc(this.gl.ONE, this.gl.ONE_MINUS_SRC_ALPHA)
+        this.gl.frontFace(this.gl.CCW)
+        this.gl.cullFace(this.gl.BACK)
+        this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, true)
+        this.gl.pixelStorei(this.gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true)
+    }
 
-const textures = {} // src:texture
+    createShader(srcText, type) {
+        let shader = this.gl.createShader(type)
+        this.gl.shaderSource(shader, srcText)
+        this.gl.compileShader(shader)
+        if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
+            console.error('Could not compile shader', this.gl.getShaderInfoLog(shader))
+            return null
+        }
+        return shader
+    }
 
-function createTexture(textureName, callback) {
-    let image = new Image()
-    image.addEventListener('load', ev => {
-        let texture = gl.createTexture()
-        gl.bindTexture(gl.TEXTURE_2D, texture)
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image)
-        callback(null, texture)
-    })
-    image.src = `assets_default/minecraft/textures/${textureName}.png`
-}
+    createShaderProgram(name, vertexShader, fragmentShader) {
+        let program = this.gl.createProgram()
+        this.gl.attachShader(program, vertexShader)
+        this.gl.attachShader(program, fragmentShader)
+        this.gl.linkProgram(program)
+        if (!this.gl.getProgramParameter(program, this.gl.LINK_STATUS)) {
+            console.error('Could not link program', this.gl.getProgramInfoLog(program))
+            return null
+        }
+        this.gl.validateProgram(program)
+        if (!this.gl.getProgramParameter(program, this.gl.VALIDATE_STATUS)) {
+            console.error('Could not validate program', this.gl.getProgramInfoLog(program))
+            return null
+        }
+        this.shaderPrograms[name] = { program, vertexShader, fragmentShader, buffers:{} }
+        return program
+    }
 
-function getTexture(textureName, callback) {
-    if (textures[textureName] == null) {
-        createTexture(textureName, (err, texture) => {
-            textures[textureName] = texture
+    createTexture(src, callback) {
+        let image = new Image()
+        image.addEventListener('load', ev => {
+            let texture = this.gl.createTexture()
+            this.gl.bindTexture(this.gl.TEXTURE_2D, texture)
+            this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE)
+            this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE)
+            this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST)
+            this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST)
+            this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, image)
+            this.textures[src] = texture
             callback(null, texture)
         })
-    } else {
-        callback(null, textures[textureName])
-    }
-}
-
-const matWorldUniformLocation = gl.getUniformLocation(program, 'mWorld')
-const matViewUniformLocation = gl.getUniformLocation(program, 'mView')
-const matProjUniformLocation = gl.getUniformLocation(program, 'mProj')
-const vertOffsetUniformLocation = gl.getUniformLocation(program, 'vertOffset')
-
-let worldMatrix = new Float32Array(16)
-let viewMatrix = new Float32Array(16)
-let projMatrix = new Float32Array(16)
-glMatrix.mat4.identity(worldMatrix)
-glMatrix.mat4.lookAt(viewMatrix, [0, 0, 10], [0, 0, 0], [0, 1, 0])
-glMatrix.mat4.perspective(projMatrix, Math.PI/4, elPreview.width / elPreview.height, 0.1, 1e3)
-
-gl.uniformMatrix4fv(matWorldUniformLocation, gl.FALSE, worldMatrix)
-gl.uniformMatrix4fv(matViewUniformLocation, gl.FALSE, viewMatrix)
-gl.uniformMatrix4fv(matProjUniformLocation, gl.FALSE, projMatrix)
-
-let currentModel
-
-function init(model) {
-    currentModel = model
-
-    radius = model.radius
-
-    let offsetVector = new Float32Array(glMatrix.vec3.negate([], model.centerOffset))
-    gl.uniform3fv(vertOffsetUniformLocation, offsetVector)
-    
-    bindBufferData(modelVertexBufferObject, gl.ARRAY_BUFFER, new Float32Array(model.vertices), gl.STATIC_DRAW)
-    bindBufferData(modelIndexBufferObject, gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(model.indices), gl.STATIC_DRAW)
-    bindBufferData(modelNormalBufferObject, gl.ARRAY_BUFFER, new Float32Array(model.normals), gl.STATIC_DRAW)
-    bindBufferData(modelTexCoordBufferObject, gl.ARRAY_BUFFER, new Float32Array(model.texCoords), gl.STATIC_DRAW)
-
-    model.textureIndices.forEach(obj => {
-        getTexture(obj.textureName, () => {}) // create gl texture for texture name if not exists
-    })
-
-    gl.activeTexture(gl.TEXTURE0)
-}
-
-ctx.font = '20px Roboto'
-ctx.fillStyle = 'red'
-
-let identityMatrix = new Float32Array(16)
-glMatrix.mat4.identity(identityMatrix)
-let spinning = false
-let radius = 15
-let angleOffsetX = 0
-let angleOffsetY = 0
-let lastFrame = 0
-let frameLength = 0
-function draw() {
-    frameLength = performance.now() - lastFrame
-    lastFrame = performance.now()
-    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height)
-    ctx.fillText(`${Math.round(1000 / frameLength)} FPS`, 20, 30)
-
-    gl.clearColor(0, 0, 0, 0)
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
-    
-    let angleX = angleOffsetX
-    let angleY = angleOffsetY
-    if (spinning === true) {
-        angleX += performance.now() / 1000 / 6 * Math.PI
+        image.src = src
     }
 
-    let eyes = [Math.cos(angleX) * Math.cos(angleY) * radius, Math.sin(angleY) * radius, Math.sin(angleX) * Math.cos(angleY) * radius]
+    getTexture(src, callback) {
+        if (this.textures[src] == null) {
+            this.createTexture(src, (err, texture) => {
+                this.textures[src] = texture
+                callback(null, texture)
+            })
+        } else {
+            callback(null, this.textures[src])
+        }
+    }
 
-    // let angle = angleOffset
-    // if (spinning === true) angle += performance.now() / 1000 / 6 * Math.PI
-    // let eyes = [Math.cos(angle) * radius, eyesY, Math.sin(angle) * radius]
-    glMatrix.mat4.lookAt(viewMatrix, eyes, [0, 0, 0], [0, 1, 0])
-    gl.uniformMatrix4fv(matViewUniformLocation, gl.FALSE, viewMatrix)
+    applyMatricesToShaderProgram(programName) {
+        let program = this.shaderPrograms[programName].program
+        this.gl.useProgram(program)
 
-    currentModel.textureIndices.forEach(obj => {
-        getTexture(obj.textureName, (err, texture) => {
-            gl.bindTexture(gl.TEXTURE_2D, texture)
-            gl.drawElements(gl.TRIANGLES, obj.length, gl.UNSIGNED_SHORT, obj.start)
+        const matWorldUniformLocation = this.gl.getUniformLocation(program, 'mWorld')
+        const matViewUniformLocation = this.gl.getUniformLocation(program, 'mView')
+        const matProjUniformLocation = this.gl.getUniformLocation(program, 'mProj')
+
+        this.gl.uniformMatrix4fv(matWorldUniformLocation, this.gl.FALSE, this.worldMatrix)
+        this.gl.uniformMatrix4fv(matViewUniformLocation, this.gl.FALSE, this.viewMatrix)
+        this.gl.uniformMatrix4fv(matProjUniformLocation, this.gl.FALSE, this.projMatrix)
+
+        this.shaderPrograms[programName].matViewUniformLocation = matViewUniformLocation
+    }
+
+    createArrayBuffer(programName, attributeName, size, type, normalized, stride, offset) {
+        this.gl.useProgram(this.shaderPrograms[programName].program)
+        let buffer = this.gl.createBuffer()
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buffer)
+        let location = this.gl.getAttribLocation(this.shaderPrograms[programName].program, attributeName)
+        this.gl.vertexAttribPointer(location, size, type, normalized, stride, offset)
+        this.gl.enableVertexAttribArray(location)
+        this.shaderPrograms[programName].buffers[attributeName] = { location, buffer }
+        return buffer
+    }
+
+    enableArrayBuffer(programName) {
+        // enabledVertexAttribArray(location)
+        // applyMatricesToShaderProgram
+        // bindBufferData
+    }
+
+    createElementArrayBuffer(programName, name) {
+        this.gl.useProgram(this.shaderPrograms[programName].program)
+        let buffer = this.gl.createBuffer()
+        this.shaderPrograms[programName].buffers[name] = { buffer }
+        return buffer
+    }
+
+    bindBufferData(programName, name, type, srcData, usage=this.gl.STATIC_DRAW) {
+        // this.gl.useProgram(this.shaderPrograms[programName].program) TODO: may need this
+        this.gl.bindBuffer(type, this.shaderPrograms[programName].buffers[name].buffer)
+        this.gl.bufferData(type, srcData, usage)
+    }
+
+    loadModel(model) {
+        this.currentModel = model
+        this.radius = model.radius
+
+        this.bindBufferData('block', 'vertPosition', this.gl.ARRAY_BUFFER, new Float32Array(model.vertices))
+        this.bindBufferData('block', 'vertTexCoord', this.gl.ARRAY_BUFFER, new Float32Array(model.texCoords))
+        this.bindBufferData('block', 'indices', this.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(model.indices))
+
+        model.textureIndices.forEach(obj => {
+            this.getTexture(`${TEXTURES_PATH}/${obj.textureName}.png`, () => {})
         })
-    })
+
+        this.gl.activeTexture(this.gl.TEXTURE0)
+    }
+
+    draw() {        
+        // HUD
+        this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height)
+        this.ctx.fillText(`${Math.round(1000 / this.frameLength)} FPS`, 20, 30)
+
+        // Webthis.gl
+        this.gl.clearColor(0, 0, 0, 0)
+        this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT)
+
+        
+        let angleX = this.angleOffsetX
+        let angleY = this.angleOffsetY
+        if (this.spinning === true) angleX += this.currentFrameTime / 1000 / 6 * Math.PI
+
+        let offset = this.currentModel.centerOffset
+        let eyes = [Math.cos(angleX) * Math.cos(angleY) * this.radius + offset[0], Math.sin(angleY) * this.radius + offset[1], Math.sin(angleX) * Math.cos(angleY) * this.radius + offset[2]]
+        glMatrix.mat4.lookAt(this.viewMatrix, eyes, offset, [0, 1, 0])
+
+        for (const programName in this.shaderPrograms) {
+            let programData = this.shaderPrograms[programName]
+            this.gl.useProgram(programData.program)
+            this.gl.uniformMatrix4fv(programData.matViewUniformLocation, this.gl.FALSE, this.viewMatrix)
+
+            if (programName === 'block') {
+                for (const key in this.currentModel.textureIndices) {
+                    let obj = this.currentModel.textureIndices[key]
+                    this.getTexture(`${TEXTURES_PATH}/${obj.textureName}.png`, (err, texture) => {
+                        this.gl.bindTexture(this.gl.TEXTURE_2D, texture)
+                        this.gl.drawElements(this.gl.TRIANGLES, obj.length, this.gl.UNSIGNED_SHORT, obj.start)
+                    })
+                }
+            }
+        }
+
+        this.lastFrameTime = this.currentFrameTime
+    }
+
+    update() {
+        this.currentFrameTime = performance.now()
+        this.frameLength = this.currentFrameTime - this.lastFrameTime
+
+        let fraction = this.frameLength / 50
+        if (keys.q.down) this.radius += fraction
+        if (keys.e.down) this.radius -= fraction
+        if (keys.a.down) this.angleOffsetX += fraction / 6
+        if (keys.d.down) this.angleOffsetX -= fraction / 6
+        if (keys.w.down) this.angleOffsetY += fraction / 6
+        if (keys.s.down) this.angleOffsetY -= fraction / 6
+        this.angleOffsetY = Math.max(Math.min(Math.PI / 2 - .1, this.angleOffsetY), -Math.PI / 2 + .1)
+        this.radius = Math.max(1.8, this.radius)
+    }
 }
 
-function update() {
-    let fraction = frameLength / 50
-    if (keys.q.down) radius += fraction
-    if (keys.e.down) radius -= fraction
-    if (keys.a.down) angleOffsetX += fraction / 6
-    if (keys.d.down) angleOffsetX -= fraction / 6
-    if (keys.w.down) angleOffsetY += fraction / 6
-    if (keys.s.down) angleOffsetY -= fraction / 6
-    angleOffsetY = Math.max(Math.min(Math.PI / 2, angleOffsetY), -Math.PI / 2)
-    radius = Math.max(1.8, radius)
-}
+const display = new Display(elPreview.getContext('webgl2'), elPreviewHud.getContext('2d'))
+display.createShaderProgram('block',
+    display.createShader(vertexShaderText, display.gl.VERTEX_SHADER),
+    display.createShader(fragmentShaderText, display.gl.FRAGMENT_SHADER))
+display.applyMatricesToShaderProgram('block')
+display.createArrayBuffer('block', 'vertPosition', 3, display.gl.FLOAT, display.gl.FALSE, 3 * Float32Array.BYTES_PER_ELEMENT, 0)
+display.createArrayBuffer('block', 'vertTexCoord', 2, display.gl.FLOAT, display.gl.FALSE, 2 * Float32Array.BYTES_PER_ELEMENT, 0)
+display.createElementArrayBuffer('block', 'indices')
 
-let running = true
+// display.createShaderProgram('color',
+//     display.createShader(coloredVertexShaderText, display.gl.VERTEX_SHADER),
+//     display.createShader(coloredFragmentShaderText, display.gl.FRAGMENT_SHADER))
+// display.applyMatricesToShaderProgram('color')
+// display.createArrayBuffer('color', 'vertPosition2', 3, display.gl.FLOAT, display.gl.FALSE, 3 * Float32Array.BYTES_PER_ELEMENT, 0)
+// display.createArrayBuffer('color', 'vertColor2', 4, display.gl.FLOAT, display.gl.FALSE, 4 * Float32Array.BYTES_PER_ELEMENT, 0)
+
+// display.bindBufferData('color', 'vertPosition2', display.gl.ARRAY_BUFFER, new Float32Array([0, 0, 0, 10, 0, 0]))
+// display.bindBufferData('color', 'vertColor2', display.gl.ARRAY_BUFFER, new Float32Array([1, 0, 0, 1, 1, 0, 0, 1]))
+
 function loop() {
-    if (!running) return
+    if (display.running === true) {
+        display.update()
+        display.draw()
 
-    update()
-    draw()
-
-    requestAnimationFrame(loop)
-
+        requestAnimationFrame(loop)
+    }
 }

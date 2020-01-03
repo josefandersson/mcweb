@@ -315,8 +315,6 @@ class Structure {
                 }
             }
         }
-        // this.forEachBlock(block => {
-        // }, true)
 
         let vertices = []
         let indices = []
@@ -332,21 +330,8 @@ class Structure {
             indices = indices.concat(texture.indices.map(i => i + iOffset))
             normals = normals.concat(texture.normals)
             texCoords = texCoords.concat(texture.texCoords)
-            // vertices.push(...texture.vertices)
-            // indices.push(...texture.indices.map(i => i + iOffset))
-            // normals.push(...texture.normals)
-            // texCoords.push(...texture.texCoords)
             textureIndices.push({ textureName:key, start:startOffset * Uint16Array.BYTES_PER_ELEMENT, length:texture.indices.length })
         }
-        // Object.entries(textures).forEach(entry => {
-        //     let iOffset = vertices.length / 3
-        //     let startOffset = indices.length
-        //     vertices.push(...entry[1].vertices)
-        //     indices.push(...entry[1].indices.map(i => i + iOffset))
-        //     normals.push(...entry[1].normals)
-        //     texCoords.push(...entry[1].texCoords)
-        //     textureIndices.push({ textureName:entry[0], start:startOffset * Uint16Array.BYTES_PER_ELEMENT, length:entry[1].indices.length })
-        // })
         
         return { vertices, indices, normals, texCoords, textureIndices, centerOffset:[ this.width/2, this.height/2, this.depth/2 ], radius:Math.max(this.width, this.height, this.depth) + 5 }
     }

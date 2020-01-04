@@ -84,16 +84,27 @@ class Display {
         glMatrix.mat4.lookAt(this.viewMatrix, [0, 1, 10], [0, 0, 0], [0, 1, 0])
         glMatrix.mat4.perspective(this.projMatrix, Math.PI/4, this.gl.canvas.width / this.gl.canvas.height, 0.1, 1e3)
         
-        this.running = true
-        this.spinning = false
+        this.running = false
+        this.spinning = true
         this.radius = 15
         this.angleOffsetX = Math.PI/2
-        this.angleOffsetY = Math.PI/4
+        this.angleOffsetY = Math.PI/6
         this.lastFrameTime = 0
         this.currentFrameTime = 0
         this.frameLength = 0
 
         this.resetWebGLSettings()
+    }
+
+    start() {
+        if (this.running !== true) {
+            this.running = true
+            loop()
+        }
+    }
+
+    stop() {
+        this.running = false
     }
 
     resetWebGLSettings() {

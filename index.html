@@ -36,7 +36,48 @@
                     </label>
                     <input type="file" id="file_input" accept=".stl,.nbt,.schematic,.litematic">
                     <p>or</p>
-                    <button>Generate</button>
+                    <div class="generate_container">
+                        <div class="toggle">
+                            <span>Generate</span>
+                        </div>
+                        <form>
+                            <div class="vertical">
+                                <div class="divider"></div>
+                                <div class="option show">
+                                    <span class="title">Type</span>
+                                    <select class="type" name="type">
+                                        <option value="empty">Empty</option>
+                                        <option value="box">Box</option>
+                                        <option value="sphere">Sphere</option>
+                                        <option value="helix">Helix</option>
+                                    </select>
+                                </div>
+                                <div class="divider"></div>
+                                <div data-for="empty,box,sphere,helix" class="option show">
+                                    <span class="title">Dimensions</span>
+                                    <input class="coord" type="number" name="width" value="10" min="1">
+                                    <input class="coord" type="number" name="height" value="10" min="1">
+                                    <input class="coord" type="number" name="depth" value="10" min="1">
+                                </div>
+                                <div data-for="box,sphere,helix" class="option">
+                                    <span class="title">Block type(s)</span>
+                                    <input type="text" name="block" value="stone">
+                                </div>
+                                <div data-for="box,sphere" class="option">
+                                    <span class="title">Fill</span>
+                                    <input type="checkbox" name="fill" checked>
+                                </div>
+                                <div data-for="helix" class="option">
+                                    <span class="title">Step</span>
+                                    <input type="number" name="step" value="0.5" min="0.05" step="0.05">
+                                </div>
+                                <div class="divider"></div>
+                                <div class="option show">
+                                    <input type="submit" value="Generate">
+                                </div>
+                            </div>
+                        </form>
+                    </div>
                 </div>
                 <div class="middle">
                     <p>Structure</p>

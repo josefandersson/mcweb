@@ -19,6 +19,21 @@ class Structure {
         this.ignoreAir = false
     }
 
+    isSizeEqualTo(width, height, depth) {
+        return this.width === width && this.height === height && this.depth === depth
+    }
+
+    isSizeLargerThan(width, height, depth) {
+        return this.width > width && this.height > height && this.depth > depth
+    }
+
+    isSizeLargerThanOrEqualTo(width, height, depth) {
+        return this.width >= width && this.height >= height && this.depth >= depth
+    }
+
+    getCenter() {
+        return [this.width / 2, this.height / 2, this.depth / 2]
+    }
 
     forEach(callback, xLimit=this.width, yLimit=this.height, zLimit=this.depth) {
         if (callback) {
@@ -95,7 +110,7 @@ class Structure {
         return this
     }
 
-    fill(x0, y0, z0, x1, y1, z1, type='minecraft:air') { // TODO: change type to block?
+    fill(type='minecraft:air', x0=0, y0=0, z0=0, x1=this.width-1, y1=this.height-1, z1=this.depth-1) { // TODO: change type to block?
         if (this.positionInBounds(x0, y0, z0) && this.positionInBounds(x1, y1, z1)) {
             let xo = Math.min(x0, x1)
             let yo = Math.min(y0, y1)
@@ -332,8 +347,11 @@ class Structure {
             texCoords = texCoords.concat(texture.texCoords)
             textureIndices.push({ textureName:key, start:startOffset * Uint16Array.BYTES_PER_ELEMENT, length:texture.indices.length })
         }
+
+        let longestSide = Math.max(this.width, this.height, this.depth)
+        let radius = longestSide / 2 * 1.1 / Math.tan(Math.PI / 8) + longestSide
         
-        return { vertices, indices, normals, texCoords, textureIndices, centerOffset:[ this.width/2, this.height/2, this.depth/2 ], radius:Math.max(this.width, this.height, this.depth) + 5 }
+        return { vertices, indices, normals, texCoords, textureIndices, centerOffset:[ this.width/2, this.height/2, this.depth/2 ], radius }
     }
 
     // returns object for writing with 'nbt' module

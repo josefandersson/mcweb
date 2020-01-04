@@ -14,11 +14,12 @@ body { background-color: #191e21; color: #eee; font-family: Roboto, sans-serif; 
 }
 
 .container > div {
+    vertical-align: top;
     display: inline-block;
 }
 
 .left label {
-    width: 150px;
+    width: 300px;
     height: 150px;
     display: flex;
     /* background-color: #47668c; */
@@ -62,15 +63,60 @@ body { background-color: #191e21; color: #eee; font-family: Roboto, sans-serif; 
     content: '';
 }
 
-.left input { display: none; }
+.left #file_input { display: none; }
 
 .left > p { text-align: center; font-size: 14px; font-style: italic; }
 
-.left button, .right button {
-    width: 150px;
-    cursor: pointer;
+
+
+.generate_container {
+    border: 1px solid #678dbb;
+    border-radius: 5px;
+    width: 300px;
 }
 
+.generate_container .toggle {
+    display: block;
+    padding: 5px;
+    text-align: center;
+    cursor: pointer;
+    color: #678dbb;
+}
+
+.generate_container .toggle:hover {
+    color: #cee4ff;
+}
+
+.generate_container form {
+    height: 0;
+    overflow-y: hidden;
+    text-align: center;
+    transition: height 0.2s;
+}
+
+.generate_container .option {
+    display: none;
+    margin-bottom: 7px;
+}
+
+.generate_container .option.show {
+    display: block;
+}
+
+.generate_container .option span.title {
+    color: #678dbb;
+    display: block;
+    font-size: 10px; 
+    margin-bottom: 2px;
+}
+
+.generate_container .option input.coord {
+    width: 45px;
+}
+
+.generate_container input[type=submit] {
+    cursor: pointer;
+}
 
 
 
@@ -107,4 +153,15 @@ body { background-color: #191e21; color: #eee; font-family: Roboto, sans-serif; 
     position: absolute;
     top: 0;
     left: 0;
+}
+
+
+
+
+
+div.divider {
+    height: 1px;
+    margin: 0 auto 5px auto;
+    max-width: 80%;
+    border-top: 1px solid #678dbb;
 }

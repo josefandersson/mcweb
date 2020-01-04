@@ -1,5 +1,7 @@
 class Block {
     constructor(x, y, z, type, properties=null, data=null) {
+        // console.log(x, y, z, type)
+
         this.x = x
         this.y = y
         this.z = z

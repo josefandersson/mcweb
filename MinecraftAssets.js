@@ -235,7 +235,7 @@ const MinecraftAssets = {
 }
 
 // load default
-MinecraftAssets.loadFromFile('assets_default.json')
+MinecraftAssets.loadFromFile('assets_default.json').catch(() => console.warn('Could not load default assets. Structure previews will not have texture until you add a resource pack.'))
 
 function cloneObject(obj) {
     if (obj == null) {

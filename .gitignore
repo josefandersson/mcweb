@@ -4,6 +4,8 @@ assets_*
 *.schematic
 *.nbt
 
+!assets_default*
+
 # 3rd party libraries
 gl-matrix.js
 pako.js

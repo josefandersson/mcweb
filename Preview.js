@@ -85,7 +85,7 @@ class Display {
         glMatrix.mat4.perspective(this.projMatrix, Math.PI/4, this.gl.canvas.width / this.gl.canvas.height, 0.1, 1e3)
         
         this.running = false
-        this.spinning = true
+        this.spinning = false
         this.radius = 15
         this.angleOffsetX = Math.PI/2
         this.angleOffsetY = Math.PI/6

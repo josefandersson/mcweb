@@ -233,9 +233,9 @@ class Structure {
             }
 
             if (uv == null) {
-                uv = [0,0,1,1]
+                uv = [0, 0, 1, 1]
             } else {
-                uv = uv.map(v => v/16)
+                uv = uv.map(v => v / 16)
             }
 
             let i = textures[textureName].vertices.length / 3
@@ -308,24 +308,70 @@ class Structure {
                     } else {
                         let neighbors = block.neighbors(true)
                         let faces = assets[0].model.elements[0].faces
-                        if (neighbors.north == null || neighbors.north.hasObscureModel()) {
+
+                        // let facesYAxis // north, east, south, west (0, 1, 2, 3)
+                        // let facesXAxis = [faces.north, faces.up, faces.south, faces.down] // north, up, south, down (0, 1, 2, 3)
+
+                        // if (assets[0].x) {
+                        //     let rotation = (-assets[0].x / 90) % 4
+                        //     facesXAxis = facesXAxis.splice(rotation).concat(facesXAxis)
+                        //     facesYAxis = [facesXAxis[0], faces.east, facesXAxis[2], faces.west].forEach(face => {
+                        //         let p0 = glMatrix.vec2.rotate([], [face.uv[0], face.uv[1]], [8,8], Math.PI/2*rotation)
+                        //         let p1 = glMatrix.vec2.rotate([], [face.uv[2], face.uv[3]], [8,8], Math.PI/2*rotation)
+                        //         face.uv = [...p0, ...p1]
+                        //     })
+                        // } else {
+                        //     facesYAxis = [faces.north, faces.east, faces.south, faces.west]
+                        // }
+
+                        // if (assets[0].y) {
+                        //     let rotation = (-assets[0].y / 90) % 4
+                        //     facesYAxis = facesYAxis.splice(rotation).concat(facesYAxis)
+                        // }
+
+                        // console.log(faces)
+
+                        // faces = {
+                        //     down:facesXAxis[3],
+                        //     up:facesXAxis[1],
+                        //     north:facesYAxis[0],
+                        //     south:facesYAxis[2],
+                        //     west:facesYAxis[3],
+                        //     east:facesYAxis[1],
+                        // }
+
+                        // if (assets[0].y) {
+                        //     .map(face => {
+                        //         let newFace = cloneObject(face)
+                        //         let p0 = [face.uv[0], face.uv[1]]
+                        //         let p1 = [face.uv[2], face.uv[3]]
+                        //         glMatrix.vec2.rotate(p0, p0, [8,8], Math.PI/2*rotation)
+                        //         glMatrix.vec2.rotate(p1, p1, [8,8], Math.PI/2*rotation)
+                        //         newFace.uv = [Math.round(p0[0]), Math.round(p0[1]), Math.round(p1[0]), Math.round(p1[1])]
+                        //         return newFace
+                        //     })
+                        // }
+
+                        // console.log(faces)
+
+                        // if (neighbors.north == null || neighbors.north.hasObscureModel()) {
                             push(faces.north.texture, block, assets[0], 0, 0, 0, 0, 16, 0, 16, 16, 0, 16, 0, 0, 0, 0, 1, faces.north.uv)
-                        }
-                        if (neighbors.south == null || neighbors.south.hasObscureModel()) {
+                        // }
+                        // if (neighbors.south == null || neighbors.south.hasObscureModel()) {
                             push(faces.south.texture, block, assets[0], 16, 0, 16, 16, 16, 16, 0, 16, 16, 0, 0, 16, 0, 0, -1, faces.south.uv)
-                        }
-                        if (neighbors.west == null || neighbors.west.hasObscureModel()) {
+                        // }
+                        // if (neighbors.west == null || neighbors.west.hasObscureModel()) {
                             push(faces.west.texture, block, assets[0], 0, 0, 16, 0, 16, 16, 0, 16, 0, 0, 0, 0, 1, 0, 0, faces.west.uv)
-                        }
-                        if (neighbors.east == null || neighbors.east.hasObscureModel()) {
+                        // }
+                        // if (neighbors.east == null || neighbors.east.hasObscureModel()) {
                             push(faces.east.texture, block, assets[0], 16, 0, 0, 16, 16, 0, 16, 16, 16, 16, 0, 16, -1, 0, 0, faces.east.uv)
-                        }
-                        if (neighbors.above == null || neighbors.above.hasObscureModel()) {
+                        // }
+                        // if (neighbors.above == null || neighbors.above.hasObscureModel()) {
                             push(faces.up.texture, block, assets[0], 16, 16, 16, 16, 16, 0, 0, 16, 0, 0, 16, 16, 0, 1, 0, faces.up.uv)
-                        }
-                        if (neighbors.below == null || neighbors.below.hasObscureModel()) {
+                        // }
+                        // if (neighbors.below == null || neighbors.below.hasObscureModel()) {
                             push(faces.down.texture, block, assets[0], 16, 0, 0, 16, 0, 16, 0, 0, 16, 0, 0, 0, 0, -1, 0, faces.down.uv)
-                        }
+                        // }
                     }
                 }
             }
